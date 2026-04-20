@@ -1,0 +1,56 @@
+# Installer output
+installer_output/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+ENV/
+*.pyc
+
+# Test data and images
+convertImage/
+*.tiff
+*.tif
+*.zip
+
+# Installer files
+BUILD_CHECKLIST.md
+install_dependencies.bat
+INSTALLER_README.md
+installer_setup.iss
+README_INSTALLER.txt
+start_app_simple.bat
+start_app.bat
+stop_app.bat
+USER_GUIDE.md
+
+# Node
+node_modules/
+.next/
+out/
+build/
+dist/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Data
+pythonProject/app_aplication/data/results/
