@@ -53,4 +53,5 @@ yarn-debug.log*
 yarn-error.log*
 
 # Data
+backend/app_aplication/data/results/
 pythonProject/app_aplication/data/results/

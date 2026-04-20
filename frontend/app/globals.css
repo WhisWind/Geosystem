@@ -1,0 +1,10 @@
+@import "tailwindcss";
+
+select option {
+  background-color: #171717; /* neutral-950 */
+  color: white;
+}
+
+select option:checked {
+  background-color: #27272a; /* zinc-800 */
+}
