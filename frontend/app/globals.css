@@ -8,3 +8,50 @@ select option {
 select option:checked {
   background-color: #27272a; /* zinc-800 */
 }
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none !important;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.scrollbar-hide {
+  -ms-overflow-style: none !important;  /* IE and Edge */
+  scrollbar-width: none !important;  /* Firefox */
+}
+
+/* Стилизация ползунка для временных рядов */
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgb(75, 192, 192);
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(75, 192, 192, 0.5);
+  transition: all 0.3s;
+}
+
+.slider::-webkit-slider-thumb:hover {
+  width: 24px;
+  height: 24px;
+  box-shadow: 0 0 15px rgba(75, 192, 192, 0.8);
+}
+
+.slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgb(75, 192, 192);
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 0 10px rgba(75, 192, 192, 0.5);
+  transition: all 0.3s;
+}
+
+.slider::-moz-range-thumb:hover {
+  width: 24px;
+  height: 24px;
+  box-shadow: 0 0 15px rgba(75, 192, 192, 0.8);
+}
