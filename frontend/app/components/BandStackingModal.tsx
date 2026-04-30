@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { stackBands } from "../lib/api";
 import {
   DndContext,
   closestCenter,
@@ -253,11 +254,35 @@ export function BandStackingModal({ isOpen, onClose, onComplete }: BandStackingM
   };
 
   const handleSubmit = async () => {
-    // TODO: Отправить на backend для объединения
-    // Пока создаём фейковый файл для демонстрации
-    alert("Функция объединения каналов будет реализована на следующем этапе");
-    onClose();
+    if (!allBandsAssigned || !hasEnoughBands) {
+      alert("Заполните все каналы");
+      return;
+    }
+
+    try {
+      // Используем API функцию вместо прямого fetch
+      const result = await stackBands(
+        bands.map(b => b.file),
+        bands.map(b => b.bandName),
+        satellite
+      );
+      
+      // Скачиваем объединённый файл
+      const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
+      const fileResponse = await fetch(`${apiBase}${result.file_path}`);
+      const fileBlob = await fileResponse.blob();
+      const stackedFile = new File([fileBlob], "stacked.tif", { type: "image/tiff" });
+      
+      // Передаём файл родительскому компоненту
+      onComplete(stackedFile);
+      
+    } catch (error) {
+      alert("Ошибка: " + (error as Error).message);
+    }
   };
+
+  const allBandsAssigned = bands.every(b => b.bandName);
+  const hasEnoughBands = bands.length >= 3;
 
   if (!isOpen) return null;
 

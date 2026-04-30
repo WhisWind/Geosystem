@@ -240,3 +240,131 @@ async def segment(
     except Exception as e:
         logging.error(f"Ошибка обработки: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Ошибка обработки: {str(e)}")
+
+
+
+@router.post("/calculate-from-stacked")
+async def calculate_from_stacked(
+        stacked_file_id: str = Form(...),
+        type_satellite: str = Form("Sentinel-2"),
+        index: str = Form("NDVI")
+):
+    """
+    Расчёт индекса из уже объединённого многоканального файла
+    
+    Args:
+        stacked_file_id: ID объединённого файла (из /api/stack/bands)
+        type_satellite: Название спутника
+        index: Название индекса
+    """
+    
+    # Проверка параметров
+    if type_satellite not in satellite_bands:
+        raise HTTPException(status_code=400, detail=f"Спутник {type_satellite} не поддерживается")
+    if index not in index_channels:
+        raise HTTPException(status_code=400, detail=f"Индекс {index} не поддерживается")
+    
+    required_bands = index_channels[index]
+    available_bands = satellite_bands[type_satellite]
+    missing_bands = [b for b in required_bands if b not in available_bands]
+    if missing_bands:
+        raise HTTPException(status_code=400, detail=f"Отсутствуют каналы: {missing_bands}")
+    
+    try:
+        # Открываем объединённый файл
+        stacked_path = RESULTS_DIR / stacked_file_id / "stacked.tif"
+        if not stacked_path.exists():
+            raise HTTPException(404, detail="Объединённый файл не найден")
+        
+        with rasterio.open(stacked_path) as src:
+            meta = src.meta.copy()
+            num_bands = src.count
+            
+            # Читаем все каналы
+            all_bands = src.read()  # shape: (C, H, W)
+            
+            selected_bands = {}
+            for band_name in required_bands:
+                band_idx = available_bands.index(band_name)
+                if band_idx >= num_bands:
+                    raise HTTPException(400, 
+                        detail=f"Канал {band_name} (индекс {band_idx + 1}) отсутствует — всего каналов {num_bands}")
+                
+                band_data = all_bands[band_idx].astype(np.float32)
+                if src.nodata is not None:
+                    band_data[band_data == src.nodata] = np.nan
+                selected_bands[band_name] = band_data
+            
+            # Расчёт индекса
+            match index:
+                case "NDVI":
+                    result = IndexCalculator.compute_ndvi(selected_bands["Red"], selected_bands["NIR"])
+                case "NDWI":
+                    result = IndexCalculator.compute_ndwi(selected_bands["Green"], selected_bands["NIR"])
+                case "EVI":
+                    result = IndexCalculator.compute_evi(selected_bands["Blue"], selected_bands["Red"],
+                                                         selected_bands["NIR"])
+                case "NBR":
+                    swir = selected_bands.get("SWIR")
+                    if swir is None:
+                        raise HTTPException(400, detail="Для NBR нужен канал SWIR")
+                    result = IndexCalculator.compute_nbr(selected_bands["Red"], selected_bands["NIR"], swir)
+                case "GNDVI":
+                    result = IndexCalculator.compute_gndvi(selected_bands["Green"], selected_bands["NIR"])
+                case "GEMI":
+                    result = IndexCalculator.compute_gemi(selected_bands["Red"], selected_bands["NIR"])
+                case _:
+                    raise HTTPException(400, detail="Неизвестный индекс")
+            
+            # Нормализация
+            result_clean = np.nan_to_num(result, nan=0.0, posinf=1.0, neginf=-1.0)
+            result_normalized = ((result_clean + 1) / 2 * 255).clip(0, 255).astype(np.uint8)
+            
+            # Статистика
+            stats = {
+                "min": float(np.nanmin(result)),
+                "max": float(np.nanmax(result)),
+                "mean": float(np.nanmean(result))
+            }
+            
+            # Сохранение результата
+            result_id = str(uuid.uuid4())
+            out_dir = RESULTS_DIR / result_id
+            out_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Сохраняем TIFF
+            meta.update({
+                "driver": "GTiff",
+                "count": 1,
+                "dtype": rasterio.uint8
+            })
+            
+            with rasterio.open(out_dir / "result.tif", 'w', **meta) as dst:
+                dst.write(result_normalized, 1)
+            
+            # Сохраняем превью
+            Image.fromarray(result_normalized).save(out_dir / "preview.png", format="PNG", optimize=True)
+            
+            # Сохраняем метаданные
+            meta_data = {
+                "id": result_id,
+                "kind": "index",
+                "satellite": type_satellite,
+                "index": index,
+                "stats": stats,
+                "message": f"Индекс {index} успешно рассчитан",
+            }
+            (out_dir / "meta.json").write_text(json.dumps(meta_data, ensure_ascii=False), encoding="utf-8")
+            
+            return {
+                "id": result_id,
+                "meta": meta_data,
+                "statistics": stats,
+                "preview_url": f"/data/results/{result_id}/preview.png",
+                "tiff_url": f"/data/results/{result_id}/result.tif",
+                "message": meta_data["message"]
+            }
+    
+    except Exception as e:
+        logging.error(f"Ошибка расчёта индекса: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Ошибка расчёта: {str(e)}")

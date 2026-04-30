@@ -1,6 +1,6 @@
 from fastapi import FastAPI
-from api import router as api_router
-from core.config import settings
+from app_aplication.api import router as api_router
+from app_aplication.core.config import settings
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
@@ -9,7 +9,7 @@ import uvicorn
 
 app = FastAPI()
 
-STORE_DIR = Path(__file__).resolve().parent / "data" / "results"  # ← только один .parent
+STORE_DIR = Path(__file__).resolve().parent / "data" / "results"
 
 app.mount("/data/results", StaticFiles(directory=str(STORE_DIR)), name="results_static")
 
@@ -35,6 +35,8 @@ app.add_middleware(
 
 if __name__ == "__main__":
     uvicorn.run(
-        "main:app",
-        reload=True
+        "app_aplication.main:app",
+        reload=True,
+        host="0.0.0.0",
+        port=8000
     )

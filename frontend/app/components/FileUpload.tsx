@@ -29,7 +29,7 @@ export function FileUpload({
       target: {
         files: [stackedFile]
       }
-    } as ChangeEvent<HTMLInputElement>;
+    } as unknown as ChangeEvent<HTMLInputElement>;
     
     onFileChange(syntheticEvent);
     setShowBandStacking(false);

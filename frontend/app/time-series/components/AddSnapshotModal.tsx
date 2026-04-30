@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { calculateIndex } from "../../lib/api";
 import { BandStackingModal } from "../../components/BandStackingModal";
 
 interface AddSnapshotModalProps {
@@ -48,31 +49,18 @@ export function AddSnapshotModal({ isOpen, onClose, seriesId, satellite, indexTy
     setLoading(true);
 
     try {
-      // Отправить файл на backend для расчёта индекса
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("satellite", satellite);
-      formData.append("index", indexType);
-
-      const response = await fetch("http://localhost:8000/api/index/calculate", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error("Ошибка расчёта индекса");
-      }
-
-      const result = await response.json();
+      // Используем API функцию для расчёта индекса
+      const result = await calculateIndex(file, satellite, indexType);
 
       // Создать снимок
+      const apiBase = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
       const snapshot = {
         id: Date.now().toString(),
         date,
-        previewUrl: `http://localhost:8000${result.preview_url}`,
-        mean: result.statistics.mean,
-        min: result.statistics.min,
-        max: result.statistics.max,
+        previewUrl: `${apiBase}${result.meta.preview_url || result.preview_url}`,
+        mean: result.meta.stats.mean,
+        min: result.meta.stats.min,
+        max: result.meta.stats.max,
       };
 
       // Добавить в временной ряд

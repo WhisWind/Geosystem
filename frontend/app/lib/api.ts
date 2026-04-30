@@ -3,6 +3,7 @@ const API_URL_INDEX = `${API_BASE}/api/index`;
 const API_URL_WATER = `${API_BASE}/api/water`;
 const API_URL_EXPORT = `${API_BASE}/api/export`;
 const API_URL_RISK = `${API_BASE}/api/risk`;
+const API_URL_STACK = `${API_BASE}/api/stack`;
 
 export async function calculateIndex(
   file: File,
@@ -101,4 +102,59 @@ export async function getResultById(id: string) {
     throw new Error(err.detail || "Не удалось загрузить результат");
   }
   return res.json();
+}
+
+export async function stackBands(
+  files: File[],
+  bandNames: string[],
+  satellite: string
+) {
+  const formData = new FormData();
+  
+  files.forEach((file) => {
+    formData.append("files", file);
+  });
+  
+  bandNames.forEach((name) => {
+    formData.append("band_names", name);
+  });
+  
+  formData.append("satellite", satellite);
+  
+  const res = await fetch(`${API_URL_STACK}/bands`, {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    const message = err.detail || err.message || "Ошибка объединения каналов";
+    throw new Error(message);
+  }
+
+  return res.json(); // { id, file_path, preview_url, ... }
+}
+
+export async function calculateFromStacked(
+  stackedFileId: string,
+  satellite: string,
+  index: string
+) {
+  const formData = new FormData();
+  formData.append("stacked_file_id", stackedFileId);
+  formData.append("type_satellite", satellite);
+  formData.append("index", index);
+  
+  const res = await fetch(`${API_URL_INDEX}/calculate-from-stacked`, {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    const message = err.detail || err.message || "Ошибка расчёта индекса";
+    throw new Error(message);
+  }
+
+  return res.json(); // { id, meta, ... }
 }
