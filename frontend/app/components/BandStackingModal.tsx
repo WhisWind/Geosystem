@@ -491,6 +491,7 @@ export function BandStackingModal({ isOpen, onClose, onComplete }: BandStackingM
             {(() => {
               const allBandsAssigned = bands.every(b => b.bandName);
               const hasEnoughBands = bands.length >= 3;
+              const has12Bands = bands.length === 12;
               
               return (
                 <>
@@ -510,6 +511,32 @@ export function BandStackingModal({ isOpen, onClose, onComplete }: BandStackingM
                       <p className="text-yellow-200 text-sm">
                         ⚠ Для расчёта индексов нужно минимум 3 канала (загружено: {bands.length})
                       </p>
+                    </div>
+                  )}
+
+                  {hasEnoughBands && !has12Bands && satellite === "Sentinel-2" && (
+                    <div className="mb-6 bg-blue-500/10 border border-blue-500/20 rounded-xl p-4">
+                      <div className="flex items-start gap-2">
+                        <svg className="h-5 w-5 text-blue-300 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <div className="text-blue-200 text-sm">
+                          <strong>Информация:</strong> Для режима "Выделение водных ресурсов" требуется ровно 12 каналов Sentinel-2 (B01-B12). Текущий файл будет работать только для расчёта индексов.
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {has12Bands && satellite === "Sentinel-2" && (
+                    <div className="mb-6 bg-green-500/10 border border-green-500/20 rounded-xl p-4">
+                      <div className="flex items-start gap-2">
+                        <svg className="h-5 w-5 text-green-300 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <div className="text-green-200 text-sm">
+                          <strong>Отлично!</strong> 12 каналов Sentinel-2 — файл подходит для всех режимов, включая выделение водных ресурсов.
+                        </div>
+                      </div>
                     </div>
                   )}
 
