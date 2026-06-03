@@ -14,7 +14,8 @@ import re
 router = APIRouter(prefix="/stack", tags=["stack"])
 
 # Директория для сохранения результатов
-RESULTS_DIR = Path("app_aplication/data/results")
+BASE_DIR = Path(__file__).resolve().parent.parent  # app_aplication/
+RESULTS_DIR = BASE_DIR / "data" / "results"
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 
 
@@ -100,10 +101,27 @@ async def stack_bands(
                 'filename': file.filename
             })
         
-        # Сортируем файлы по названию канала
+        # Сортируем файлы по band_name (в правильном порядке для Sentinel-2 или Landsat-8)
+        def get_band_order(band_name: str, satellite: str) -> int:
+            """Возвращает порядковый номер канала для сортировки"""
+            if satellite == "Sentinel-2":
+                order = {
+                    "B01": 1, "B02": 2, "B03": 3, "B04": 4,
+                    "B05": 5, "B06": 6, "B07": 7, "B08": 8,
+                    "B8A": 9, "B09": 10, "B11": 11, "B12": 12
+                }
+                return order.get(band_name, 999)
+            elif satellite == "Landsat-8":
+                order = {
+                    "B1": 1, "B2": 2, "B3": 3, "B4": 4,
+                    "B5": 5, "B6": 6, "B7": 7
+                }
+                return order.get(band_name, 999)
+            return 999
+        
         file_data_sorted = sorted(
             file_data,
-            key=lambda x: get_channel_sort_key(x['filename'], satellite)
+            key=lambda x: get_band_order(x['band_name'], satellite)
         )
         
         # Открываем первый файл для получения метаданных
@@ -127,13 +145,25 @@ async def stack_bands(
             "driver": "GTiff",
             "count": len(images),
             "dtype": dtype,
-            "nodata": 0
+            "nodata": 0,
+            "compress": "lzw",
+            "tiled": True,
+            "blockxsize": 256,
+            "blockysize": 256
         })
         
         # Сохраняем результат
         output_path = result_dir / "stacked.tif"
         with rasterio.open(output_path, 'w', **meta) as dst:
             dst.write(stacked)
+        
+        # Проверяем, что файл корректно записан
+        try:
+            with rasterio.open(output_path, 'r') as check:
+                if check.count != len(images):
+                    raise ValueError(f"Ошибка записи: ожидалось {len(images)} каналов, найдено {check.count}")
+        except Exception as e:
+            raise HTTPException(500, f"Ошибка проверки записанного файла: {str(e)}")
         
         # Создаём превью (RGB из первых трёх каналов)
         preview_path = result_dir / "preview.png"

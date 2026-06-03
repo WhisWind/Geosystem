@@ -4,6 +4,7 @@ import base64
 import logging
 import json
 import uuid
+import time
 
 from pathlib import Path
 from PIL import Image
@@ -21,53 +22,53 @@ router = APIRouter(
 )
 
 
-# Словарь с возможными спутниками и их каналами
+# Словарь с возможными спутниками и их каналами (номера каналов начинаются с 1)
 satellite_bands = {
-    "Sentinel-2": [
-        "Blue",            # Blue (B2)
-        "Green",           # Green (B3)
-        "Red",             # Red (B4)
-        "Red-Edge",        # Red-Edge (B5)
-        "NIR",             # NIR (B8)
-        "Narrow NIR",     # Narrow NIR (B8A)
-        "SWIR",          # SWIR (B11)
-        "SWIR2",          # SWIR2 (B12)
-        "Water Vapour",    # Water Vapour (B9)
-        "Cirrus",         # Cirrus (B10)
-        "SWIR3"            # SWIR3 (B6)
-    ],
-    "Landsat-8": [
-        "Blue",            # Blue (B2)
-        "Green",           # Green (B3)
-        "Red",             # Red (B4)
-        "NIR",             # NIR (B5)
-        "SWIR1",           # SWIR1 (B6)
-        "SWIR2",           # SWIR2 (B7)
-        "Panchromatic",    # Panchromatic (B8)
-        "Cirrus",          # Cirrus (B9)
-        "Thermal",        # Thermal (B10)
-        "SWIR3"           # SWIR3 (B11)
-    ],
-    "Канопус-В": [
-        "Red",            # Red (Red)
-        "Green",        # Green (Green)
-        "Blue",          # Blue (Blue)
-        "NIR"             # NIR (NIR)
-    ],
-    "Метеор-М": [
-        "Red",            # Red (Red)
-        "Green",        # Green (Green)
-        "Blue",          # Blue (Blue)
-        "NIR"             # NIR (NIR)
-    ],
-    "Ресурс-П": [
-        "Red",            # Red (Red)
-        "Green",        # Green (Green)
-        "Blue",          # Blue (Blue)
-        "NIR",            # NIR (NIR)
-        "Red-Edge",  # Red-Edge (Red-Edge)
-        "SWIR"           # SWIR (SWIR)
-    ]
+    "Sentinel-2": {
+        "Blue": 2,           # B2 - Blue (490 nm)
+        "Green": 3,          # B3 - Green (560 nm)
+        "Red": 4,            # B4 - Red (665 nm)
+        "Red-Edge": 5,       # B5 - Red-Edge (705 nm)
+        "NIR": 8,            # B8 - NIR (842 nm)
+        "Narrow NIR": 9,     # B8A - Narrow NIR (865 nm)
+        "SWIR": 11,          # B11 - SWIR (1610 nm)
+        "SWIR2": 12,         # B12 - SWIR2 (2190 nm)
+        "Water Vapour": 9,   # B9 - Water Vapour (945 nm)
+        "Cirrus": 10,        # B10 - Cirrus (1375 nm)
+        "SWIR3": 6,          # B6 - SWIR3 (740 nm)
+    },
+    "Landsat-8": {
+        "Blue": 2,           # B2 - Blue (482 nm)
+        "Green": 3,          # B3 - Green (562 nm)
+        "Red": 4,            # B4 - Red (655 nm)
+        "NIR": 5,            # B5 - NIR (865 nm)
+        "SWIR1": 6,          # B6 - SWIR1 (1610 nm)
+        "SWIR2": 7,          # B7 - SWIR2 (2200 nm)
+        "Panchromatic": 8,   # B8 - Panchromatic (590 nm)
+        "Cirrus": 9,         # B9 - Cirrus (1375 nm)
+        "Thermal": 10,       # B10 - Thermal (1090 nm)
+        "SWIR3": 11,         # B11 - SWIR3 (1200 nm)
+    },
+    "Канопус-В": {
+        "Red": 1,            # Red
+        "Green": 2,          # Green
+        "Blue": 3,           # Blue
+        "NIR": 4,            # NIR
+    },
+    "Метеор-М": {
+        "Red": 1,            # Red
+        "Green": 2,          # Green
+        "Blue": 3,           # Blue
+        "NIR": 4,            # NIR
+    },
+    "Ресурс-П": {
+        "Red": 1,            # Red
+        "Green": 2,          # Green
+        "Blue": 3,           # Blue
+        "NIR": 4,            # NIR
+        "Red-Edge": 5,       # Red-Edge
+        "SWIR": 6,           # SWIR
+    }
 }
 
 # Словарь, который хранит необходимые каналы для расчёта каждого индекса
@@ -113,12 +114,15 @@ async def segment(
         raise HTTPException(status_code=400, detail=f"Индекс {index} не поддерживается")
 
     required_bands = index_channels[index]
-    available_bands = satellite_bands[type_satellite]
-    missing_bands = [b for b in required_bands if b not in available_bands]
+    band_mapping = satellite_bands[type_satellite]
+    available_band_names = list(band_mapping.keys())
+    
+    missing_bands = [b for b in required_bands if b not in band_mapping]
     if missing_bands:
         raise HTTPException(status_code=400, detail=f"Отсутствуют каналы: {missing_bands}")
 
     try:
+        start_time = time.time()
         contents = await file.read()
 
         with MemoryFile(contents) as memfile:
@@ -133,13 +137,17 @@ async def segment(
 
                 selected_bands = {}
                 for band_name in required_bands:
-                    if band_name not in available_bands:
+                    if band_name not in band_mapping:
                         raise HTTPException(400, detail=f"Канал {band_name} отсутствует для {type_satellite}")
 
-                    band_idx = available_bands.index(band_name)  # индекс с 0!
+                    # Получаем номер канала спутника (начинается с 1)
+                    band_number = band_mapping[band_name]
+                    # Преобразуем в индекс массива (начинается с 0)
+                    band_idx = band_number - 1
+                    
                     if band_idx >= num_bands:
                         raise HTTPException(400,
-                                            detail=f"Канал {band_name} (индекс {band_idx + 1}) отсутствует — всего каналов {num_bands}")
+                                            detail=f"Канал {band_name} (B{band_number}) отсутствует — всего каналов {num_bands}")
 
                     band_data = all_bands[band_idx].astype(np.float32)
                     if src.nodata is not None:
@@ -167,6 +175,8 @@ async def segment(
                     case _:
                         raise HTTPException(400, detail="Неизвестный индекс")
 
+                processing_time = time.time() - start_time
+
                 # Нормализация в 0–255 для grayscale TIFF
                 result_clean = np.nan_to_num(result, nan=0.0, posinf=1.0, neginf=-1.0)
                 result_normalized = ((result_clean + 1) / 2 * 255).clip(0, 255).astype(np.uint8)
@@ -177,6 +187,9 @@ async def segment(
                     "max": float(np.nanmax(result)),
                     "mean": float(np.nanmean(result))
                 }
+                
+                # Время расчёта (будет вычислено выше)
+                processing_time = getattr(src, '_processing_time', 0.0)
 
                 # Запись в MemoryFile
                 meta.update({
@@ -203,6 +216,9 @@ async def segment(
                 out_dir = RESULTS_DIR / result_id
                 out_dir.mkdir(parents=True, exist_ok=True)
 
+                # Сохраняем исходный файл для повторного использования
+                (out_dir / "source.tif").write_bytes(contents)
+
                 # 1) сохранить tiff результата
                 (out_dir / "result.tif").write_bytes(tiff_bytes)
                 Image.fromarray(result_normalized).save(out_dir / "preview.png", format="PNG", optimize=True)
@@ -215,7 +231,8 @@ async def segment(
                     "satellite": type_satellite,
                     "index": index,
                     "stats": stats,
-                    "message": f"Индекс {index} успешно рассчитан",
+                    "processing_time_seconds": round(processing_time, 3),
+                    "message": f"Индекс {index} успешно рассчитан за {processing_time:.2f} сек",
                 }
                 (out_dir / "meta.json").write_text(json.dumps(meta, ensure_ascii=False), encoding="utf-8")
 
@@ -265,12 +282,15 @@ async def calculate_from_stacked(
         raise HTTPException(status_code=400, detail=f"Индекс {index} не поддерживается")
     
     required_bands = index_channels[index]
-    available_bands = satellite_bands[type_satellite]
-    missing_bands = [b for b in required_bands if b not in available_bands]
+    band_mapping = satellite_bands[type_satellite]
+    
+    missing_bands = [b for b in required_bands if b not in band_mapping]
     if missing_bands:
         raise HTTPException(status_code=400, detail=f"Отсутствуют каналы: {missing_bands}")
     
     try:
+        start_time = time.time()
+        
         # Открываем объединённый файл
         stacked_path = RESULTS_DIR / stacked_file_id / "stacked.tif"
         if not stacked_path.exists():
@@ -285,15 +305,42 @@ async def calculate_from_stacked(
             
             selected_bands = {}
             for band_name in required_bands:
-                band_idx = available_bands.index(band_name)
+                # Получаем номер канала спутника (начинается с 1)
+                band_number = band_mapping[band_name]
+                # Преобразуем в индекс массива (начинается с 0)
+                band_idx = band_number - 1
+                
                 if band_idx >= num_bands:
                     raise HTTPException(400, 
-                        detail=f"Канал {band_name} (индекс {band_idx + 1}) отсутствует — всего каналов {num_bands}")
+                        detail=f"Канал {band_name} (B{band_number}) отсутствует — всего каналов {num_bands}")
                 
                 band_data = all_bands[band_idx].astype(np.float32)
                 if src.nodata is not None:
                     band_data[band_data == src.nodata] = np.nan
                 selected_bands[band_name] = band_data
+            
+            # Расчёт индекса
+            match index:
+                case "NDVI":
+                    result = IndexCalculator.compute_ndvi(selected_bands["Red"], selected_bands["NIR"])
+                case "NDWI":
+                    result = IndexCalculator.compute_ndwi(selected_bands["Green"], selected_bands["NIR"])
+                case "EVI":
+                    result = IndexCalculator.compute_evi(selected_bands["Blue"], selected_bands["Red"],
+                                                         selected_bands["NIR"])
+                case "NBR":
+                    swir = selected_bands.get("SWIR")
+                    if swir is None:
+                        raise HTTPException(400, detail="Для NBR нужен канал SWIR")
+                    result = IndexCalculator.compute_nbr(selected_bands["Red"], selected_bands["NIR"], swir)
+                case "GNDVI":
+                    result = IndexCalculator.compute_gndvi(selected_bands["Green"], selected_bands["NIR"])
+                case "GEMI":
+                    result = IndexCalculator.compute_gemi(selected_bands["Red"], selected_bands["NIR"])
+                case _:
+                    raise HTTPException(400, detail="Неизвестный индекс")
+            
+            processing_time = time.time() - start_time
             
             # Расчёт индекса
             match index:
@@ -332,6 +379,10 @@ async def calculate_from_stacked(
             out_dir = RESULTS_DIR / result_id
             out_dir.mkdir(parents=True, exist_ok=True)
             
+            # Копируем исходный stacked файл для повторного использования
+            import shutil
+            shutil.copy(stacked_path, out_dir / "source.tif")
+            
             # Сохраняем TIFF
             meta.update({
                 "driver": "GTiff",
@@ -352,7 +403,8 @@ async def calculate_from_stacked(
                 "satellite": type_satellite,
                 "index": index,
                 "stats": stats,
-                "message": f"Индекс {index} успешно рассчитан",
+                "processing_time_seconds": round(processing_time, 3),
+                "message": f"Индекс {index} успешно рассчитан за {processing_time:.2f} сек",
             }
             (out_dir / "meta.json").write_text(json.dumps(meta_data, ensure_ascii=False), encoding="utf-8")
             

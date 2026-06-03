@@ -11,22 +11,22 @@ interface PreviewCardProps {
 
 export function PreviewCard({ entry, previewUrl, selectedId, onDownload }: PreviewCardProps) {
   return (
-    <div className="rounded-3xl border border-white/10 bg-white/[0.06] p-6 shadow-2xl backdrop-blur-xl">
+    <div className="rounded-3xl border border-gray-200 bg-white/80 p-6 shadow-2xl backdrop-blur-xl">
       <div className="flex items-center justify-between">
         <div>
-          <div className="text-sm font-medium">Превью</div>
-          <div className="mt-1 text-xs text-white/60">
+          <div className="text-sm font-medium text-gray-900">Превью</div>
+          <div className="mt-1 text-xs text-gray-600">
             {entry.type === "index" ? "Индекс" : 
              entry.type === "water" ? "Маска воды" : 
              "Карта риска"}
           </div>
         </div>
-        <div className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/70">
+        <div className="rounded-2xl border border-gray-200 bg-gray-100 px-3 py-2 text-xs text-gray-700">
           Preview
         </div>
       </div>
 
-      <div className="mt-5 overflow-hidden rounded-3xl border border-white/10 bg-white/5">
+      <div className="mt-5 overflow-hidden rounded-3xl border border-gray-200 bg-gray-50">
         {previewUrl ? (
           <img 
             src={previewUrl} 
@@ -35,7 +35,7 @@ export function PreviewCard({ entry, previewUrl, selectedId, onDownload }: Previ
             onError={() => console.error("Preview load failed")}
           />
         ) : (
-          <div className="text-center py-20 text-white/50">
+          <div className="text-center py-20 text-gray-500">
             Выберите расчёт из истории
           </div>
         )}
@@ -43,7 +43,7 @@ export function PreviewCard({ entry, previewUrl, selectedId, onDownload }: Previ
 
       {entry.type === "risk" && selectedId && (
         <div className="mt-8">
-          <div className="text-sm font-medium mb-4">Индексы, участвовавшие в расчёте</div>
+          <div className="text-sm font-medium text-gray-900 mb-4">Индексы, участвовавшие в расчёте</div>
           <div className="grid sm:grid-cols-3 gap-4">
             {["NDWI", "NDVI", "BSI"].map(name => (
               <div key={name} className="relative group">

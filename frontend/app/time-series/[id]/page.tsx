@@ -31,11 +31,25 @@ export default function TimeSeriesViewerPage() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [playSpeed, setPlaySpeed] = useState(1);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showSpeedMenu, setShowSpeedMenu] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const speedMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadSeries();
   }, [id]);
+
+  // Закрытие меню скорости при клике вне его
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (speedMenuRef.current && !speedMenuRef.current.contains(event.target as Node)) {
+        setShowSpeedMenu(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const loadSeries = () => {
     const data = localStorage.getItem("timeSeries");
@@ -279,16 +293,47 @@ export default function TimeSeriesViewerPage() {
                     ⏭
                   </button>
 
-                  <select
-                    value={playSpeed}
-                    onChange={(e) => setPlaySpeed(parseFloat(e.target.value))}
-                    className="p-3 rounded-xl bg-white/10 text-white border-none"
-                  >
-                    <option value="0.5">0.5x</option>
-                    <option value="1">1x</option>
-                    <option value="2">2x</option>
-                    <option value="4">4x</option>
-                  </select>
+                  <div ref={speedMenuRef} className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setShowSpeedMenu(!showSpeedMenu)}
+                      className="p-3 px-4 rounded-xl bg-white/10 hover:bg-white/20 transition text-white flex items-center gap-2"
+                    >
+                      <span>{playSpeed}x</span>
+                      <svg
+                        className={`h-4 w-4 text-white/60 transition-transform ${showSpeedMenu ? 'rotate-180' : ''}`}
+                        style={{ marginLeft: '6px' }}
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+
+                    {showSpeedMenu && (
+                      <div className="absolute z-10 mt-2 rounded-2xl border border-white/10 bg-neutral-900 shadow-xl overflow-hidden">
+                        {[0.5, 1, 2, 4].map((speed) => (
+                          <button
+                            key={speed}
+                            type="button"
+                            onClick={() => {
+                              setPlaySpeed(speed);
+                              setShowSpeedMenu(false);
+                            }}
+                            className={`w-full px-6 py-3 text-sm text-left transition whitespace-nowrap ${
+                              playSpeed === speed
+                                ? "bg-white/10 text-white"
+                                : "text-white/70 hover:bg-white/5"
+                            }`}
+                          >
+                            {speed}x
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="mt-4 text-xs text-white/40 text-center">

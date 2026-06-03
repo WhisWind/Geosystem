@@ -1,5 +1,18 @@
-const riskScenarios = ["flooding", "ecological", "passability"];
-const normalizationTypes = ["linear", "threshold", "sigmoid", "log"];
+"use client";
+import { useState, useRef, useEffect } from "react";
+
+const riskScenarios = [
+  { value: "flooding", label: "Подтопление" },
+  { value: "ecological", label: "Экологическая устойчивость" },
+  { value: "passability", label: "Проходимость" }
+];
+
+const normalizationTypes = [
+  { value: "linear", label: "Линейная" },
+  { value: "threshold", label: "По порогам" },
+  { value: "sigmoid", label: "Сигмоидная" },
+  { value: "log", label: "Логарифмическая" }
+];
 
 interface RiskParametersProps {
   riskScenario: string;
@@ -22,22 +35,40 @@ export function RiskParameters({
   onSafeThresholdChange,
   onDangerThresholdChange,
 }: RiskParametersProps) {
+  const [showScenarios, setShowScenarios] = useState(false);
+  const [showNormalization, setShowNormalization] = useState(false);
+  const scenarioRef = useRef<HTMLDivElement>(null);
+  const normalizationRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (scenarioRef.current && !scenarioRef.current.contains(event.target as Node)) {
+        setShowScenarios(false);
+      }
+      if (normalizationRef.current && !normalizationRef.current.contains(event.target as Node)) {
+        setShowNormalization(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const currentScenario = riskScenarios.find(s => s.value === riskScenario);
+  const currentNormalization = normalizationTypes.find(n => n.value === normalizationType);
+
   return (
-    <div className="sm:col-span-2">
-      <div>
-        <label className="mb-2 block text-xs font-medium text-white/70">Сценарий риска</label>
-        <div className="relative">
-          <select
-            value={riskScenario}
-            onChange={(e) => onScenarioChange(e.target.value)}
-            className="w-full appearance-none rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition focus:border-white/20 focus:bg-white/[0.07]"
-          >
-            <option value="flooding">Подтопление</option>
-            <option value="ecological">Экологическая устойчивость</option>
-            <option value="passability">Проходимость</option>
-          </select>
+    <div className="sm:col-span-2 space-y-6">
+      <div ref={scenarioRef} className="relative">
+        <label className="mb-2 block text-xs font-medium text-gray-700">Сценарий риска</label>
+        <button
+          type="button"
+          onClick={() => setShowScenarios(!showScenarios)}
+          className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition hover:bg-gray-50 text-left flex items-center justify-between"
+        >
+          <span>{currentScenario?.label}</span>
           <svg
-            className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/60"
+            className={`h-4 w-4 text-gray-600 transition-transform ${showScenarios ? 'rotate-180' : ''}`}
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -45,24 +76,41 @@ export function RiskParameters({
           >
             <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
           </svg>
-        </div>
+        </button>
+
+        {showScenarios && (
+          <div className="absolute z-10 mt-2 w-full rounded-2xl border border-gray-300 bg-white shadow-xl overflow-hidden">
+            {riskScenarios.map((scenario) => (
+              <button
+                key={scenario.value}
+                type="button"
+                onClick={() => {
+                  onScenarioChange(scenario.value);
+                  setShowScenarios(false);
+                }}
+                className={`w-full px-4 py-3 text-sm text-left transition ${
+                  riskScenario === scenario.value
+                    ? "bg-emerald-50 text-emerald-900"
+                    : "text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                {scenario.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
-      <div>
-        <label className="mb-2 block text-xs font-medium text-white/70">Нормализация</label>
-        <div className="relative">
-          <select
-            value={normalizationType}
-            onChange={(e) => onNormalizationChange(e.target.value)}
-            className="w-full appearance-none rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition focus:border-white/20 focus:bg-white/[0.07]"
-          >
-            <option value="linear">Линейная</option>
-            <option value="threshold">По порогам</option>
-            <option value="sigmoid">Сигмоидная</option>
-            <option value="log">Логарифмическая</option>
-          </select>
+      <div ref={normalizationRef} className="relative">
+        <label className="mb-2 block text-xs font-medium text-gray-700">Нормализация</label>
+        <button
+          type="button"
+          onClick={() => setShowNormalization(!showNormalization)}
+          className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition hover:bg-gray-50 text-left flex items-center justify-between"
+        >
+          <span>{currentNormalization?.label}</span>
           <svg
-            className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/60"
+            className={`h-4 w-4 text-gray-600 transition-transform ${showNormalization ? 'rotate-180' : ''}`}
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -70,13 +118,35 @@ export function RiskParameters({
           >
             <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
           </svg>
-        </div>
+        </button>
+
+        {showNormalization && (
+          <div className="absolute z-10 mt-2 w-full rounded-2xl border border-gray-300 bg-white shadow-xl overflow-hidden">
+            {normalizationTypes.map((norm) => (
+              <button
+                key={norm.value}
+                type="button"
+                onClick={() => {
+                  onNormalizationChange(norm.value);
+                  setShowNormalization(false);
+                }}
+                className={`w-full px-4 py-3 text-sm text-left transition ${
+                  normalizationType === norm.value
+                    ? "bg-emerald-50 text-emerald-900"
+                    : "text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                {norm.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {normalizationType === "threshold" && (
-        <div className="sm:col-span-2 grid gap-6 sm:grid-cols-2">
+        <div className="grid gap-6 sm:grid-cols-2">
           <div>
-            <label className="mb-2 block text-xs font-medium text-white/70">Безопасно до</label>
+            <label className="mb-2 block text-xs font-medium text-gray-700">Безопасно до</label>
             <input
               type="range"
               min="0"
@@ -86,13 +156,13 @@ export function RiskParameters({
               onChange={(e) => onSafeThresholdChange(parseFloat(e.target.value))}
               className="w-full accent-emerald-600"
             />
-            <div className="text-center text-sm text-white/80 mt-1">
+            <div className="text-center text-sm text-gray-700 mt-1">
               {(safeThreshold * 100).toFixed(0)}%
             </div>
           </div>
 
           <div>
-            <label className="mb-2 block text-xs font-medium text-white/70">Опасно от</label>
+            <label className="mb-2 block text-xs font-medium text-gray-700">Опасно от</label>
             <input
               type="range"
               min="0"
@@ -102,7 +172,7 @@ export function RiskParameters({
               onChange={(e) => onDangerThresholdChange(parseFloat(e.target.value))}
               className="w-full accent-red-600"
             />
-            <div className="text-center text-sm text-white/80 mt-1">
+            <div className="text-center text-sm text-gray-700 mt-1">
               {(dangerThreshold * 100).toFixed(0)}%
             </div>
           </div>

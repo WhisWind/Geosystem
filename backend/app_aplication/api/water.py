@@ -1,6 +1,7 @@
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 import numpy as np
 import torch
+import time
 
 from PIL import Image
 import rasterio
@@ -51,13 +52,41 @@ async def segment_water(
         raise HTTPException(400, detail="Поддерживаются только TIFF/GeoTIFF")
 
     try:
+        start_time = time.time()
         contents = await file.read()
+        
+        if len(contents) == 0:
+            raise HTTPException(400, detail="Файл пустой")
 
         # Читаем из памяти
-        with MemoryFile(contents) as memfile:
-            with memfile.open() as src:
-                img = src.read().astype(np.float32)  # (C,H,W)
-                profile = src.profile.copy()
+        try:
+            with MemoryFile(contents) as memfile:
+                with memfile.open() as src:
+                    img = src.read().astype(np.float32)  # (C,H,W)
+                    profile = src.profile.copy()
+        except Exception as read_error:
+            # Попытка сохранить во временный файл для диагностики
+            import tempfile
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.tif') as tmp:
+                tmp.write(contents)
+                tmp_path = tmp.name
+            
+            try:
+                with rasterio.open(tmp_path) as src:
+                    img = src.read().astype(np.float32)
+                    profile = src.profile.copy()
+                import os
+                os.unlink(tmp_path)
+            except Exception as file_error:
+                import os
+                if os.path.exists(tmp_path):
+                    os.unlink(tmp_path)
+                raise HTTPException(
+                    400, 
+                    detail=f"Невозможно прочитать TIFF файл. "
+                           f"Ошибка MemoryFile: {str(read_error)}. "
+                           f"Ошибка файла: {str(file_error)}"
+                )
 
         if img.shape[0] != 12:
             raise HTTPException(400, detail=f"Ожидается 12 каналов, получено: {img.shape[0]}. Модель требует Sentinel-2 с 12 каналами.")
@@ -74,6 +103,8 @@ async def segment_water(
 
         mask_np = mask.cpu().numpy()
 
+        processing_time = time.time() - start_time
+
         # Статистика
         water_pixels = int((mask_np > 0).sum())
         total_pixels = int(mask_np.size)
@@ -83,6 +114,9 @@ async def segment_water(
         result_id = str(uuid.uuid4())
         out_dir = RESULTS_DIR / result_id
         out_dir.mkdir(parents=True, exist_ok=True)
+
+        # Сохраняем исходный файл для повторного использования
+        (out_dir / "source.tif").write_bytes(contents)
 
         # Сохраняем маску как GeoTIFF (с геопривязкой)
         profile.update(dtype=rasterio.uint8, count=1, compress="lzw")
@@ -99,11 +133,12 @@ async def segment_water(
             "filename": file.filename,
             "model": model_key,
             "threshold": threshold,
+            "processing_time_seconds": round(processing_time, 3),
             "stats": {
                 "water_pixels": water_pixels,
                 "water_ratio": water_ratio,
             },
-            "message": "Сегментация воды выполнена и сохранена",
+            "message": f"Сегментация воды выполнена за {processing_time:.2f} сек",
         }
         (out_dir / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2))
 
@@ -113,6 +148,7 @@ async def segment_water(
             "filename": file.filename,
             "model": model_key,
             "threshold": threshold,
+            "processing_time_seconds": round(processing_time, 3),
             "stats": meta["stats"],
             "message": meta["message"],
         }

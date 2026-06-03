@@ -26,6 +26,7 @@ interface MetaData {
   scenario?: string;
   normalization_type?: string;
   calculated_indices?: string[];
+  processing_time_seconds?: number;
   stats: {
     safe_percent?: number;
     medium_percent?: number;
@@ -110,9 +111,9 @@ export default function ResultPage() {
   return (
     <>
       <Header />
-      <div className="min-h-screen w-full bg-neutral-950 text-white">
+      <div className="min-h-screen w-full bg-gray-50 text-gray-900">
         <div className="pointer-events-none fixed inset-0 overflow-hidden">
-          <div className="absolute -top-40 left-1/2 h-[520px] w-[520px] -translate-x-1/2 rounded-full bg-white/10 blur-3xl" />
+          <div className="absolute -top-40 left-1/2 h-[520px] w-[520px] -translate-x-1/2 rounded-full bg-blue-100/50 blur-3xl" />
           <div className="absolute -bottom-48 right-[-120px] h-[520px] w-[520px] rounded-full bg-white/5 blur-3xl" />
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(255,255,255,0.08),transparent_55%)]" />
         </div>
@@ -160,7 +161,7 @@ export default function ResultPage() {
             />
           </div>
 
-          <div className="mt-10 flex flex-wrap items-center justify-between gap-3 text-xs text-white/40">
+          <div className="mt-10 flex flex-wrap items-center justify-between gap-3 text-xs text-gray-500">
             <div>© {new Date().getFullYear()} Satellite Indices</div>
             <div className="flex items-center gap-3">
               <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">

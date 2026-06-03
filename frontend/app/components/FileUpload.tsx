@@ -45,8 +45,8 @@ export function FileUpload({
           onDrop={onDrop}
           className={`group relative cursor-pointer rounded-3xl border-2 border-dashed p-8 text-center transition ${
             dragOver
-              ? "border-emerald-400 bg-emerald-400/10"
-              : "border-white/20 bg-white/5 hover:border-white/30 hover:bg-white/[0.07]"
+              ? "border-emerald-400 bg-emerald-50"
+              : "border-gray-300 bg-gray-50 hover:border-emerald-300 hover:bg-emerald-50"
           }`}
         >
           <input
@@ -57,22 +57,22 @@ export function FileUpload({
             className="hidden"
           />
           <div className="flex flex-col items-center gap-3">
-            <div className="rounded-full bg-white/10 p-4">
-              <svg className="h-8 w-8 text-white/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="rounded-full bg-emerald-100 p-4">
+              <svg className="h-8 w-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
               </svg>
             </div>
             {fileMeta ? (
               <div className="text-center">
-                <p className="font-medium">{fileMeta.name}</p>
-                <p className="text-xs text-white/60 mt-1">
+                <p className="font-medium text-gray-900">{fileMeta.name}</p>
+                <p className="text-xs text-gray-600 mt-1">
                   {fileMeta.size} • {fileMeta.ext}
                 </p>
               </div>
             ) : (
               <div>
-                <p className="font-medium">Перетащите файл сюда</p>
-                <p className="text-xs text-white/60 mt-1">или кликните для выбора .tif/.tiff</p>
+                <p className="font-medium text-gray-900">Перетащите файл сюда</p>
+                <p className="text-xs text-gray-600 mt-1">или кликните для выбора .tif/.tiff</p>
               </div>
             )}
           </div>
@@ -80,16 +80,16 @@ export function FileUpload({
 
         {/* Разделитель */}
         <div className="mt-6 flex items-center gap-3">
-          <div className="h-px flex-1 bg-white/10" />
-          <span className="text-xs text-white/40">или</span>
-          <div className="h-px flex-1 bg-white/10" />
+          <div className="h-px flex-1 bg-gray-300" />
+          <span className="text-xs text-gray-500">или</span>
+          <div className="h-px flex-1 bg-gray-300" />
         </div>
 
         {/* Кнопка объединения каналов */}
         <button
           type="button"
           onClick={() => setShowBandStacking(true)}
-          className="mt-6 w-full rounded-2xl border border-white/20 bg-white/5 p-4 text-sm font-medium text-white/80 transition hover:bg-white/10"
+          className="mt-6 w-full rounded-2xl border border-gray-300 bg-white p-4 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
         >
           <div className="flex items-center justify-center gap-2">
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -97,7 +97,7 @@ export function FileUpload({
             </svg>
             <span>Объединить отдельные каналы</span>
           </div>
-          <div className="mt-1 text-xs text-white/50">
+          <div className="mt-1 text-xs text-gray-500">
             Загрузите спектральные каналы по отдельности
           </div>
         </button>

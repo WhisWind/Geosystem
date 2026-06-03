@@ -9,6 +9,7 @@ from scipy.ndimage import zoom
 from pathlib import Path
 import uuid
 import json
+import time
 
 router = APIRouter(prefix="/risk", tags=["risk"])
 
@@ -64,6 +65,7 @@ async def assess_risk(
         raise HTTPException(400, detail="Только TIFF")
 
     try:
+        start_time = time.time()
         contents = await file.read()
 
         with MemoryFile(contents) as memfile:
@@ -179,6 +181,9 @@ async def assess_risk(
         out_dir = RESULTS_DIR / result_id
         out_dir.mkdir(exist_ok=True)
 
+        # Сохраняем исходный файл для повторного использования
+        (out_dir / "source.tif").write_bytes(contents)
+
         (out_dir / "result.tif").write_bytes(tif_bytes)
         (out_dir / "preview.png").write_bytes(buf_png.getvalue())
 
@@ -200,6 +205,8 @@ async def assess_risk(
             pil.save(buf_png_index, format="PNG")
             (indices_dir / f"{name}.png").write_bytes(buf_png_index.getvalue())
 
+        processing_time = time.time() - start_time
+
         # meta.json
         meta = {
             "id": result_id,
@@ -209,12 +216,13 @@ async def assess_risk(
             "safe_threshold": safe_threshold,
             "danger_threshold": danger_threshold,
             "calculated_indices": list(indices.keys()),
+            "processing_time_seconds": round(processing_time, 3),
             "stats": {
                 "safe_percent": safe_percent,
                 "medium_percent": medium_percent,
                 "danger_percent": danger_percent,
             },
-            "message": "Карта риска рассчитана",
+            "message": f"Карта риска рассчитана за {processing_time:.2f} сек",
         }
         (out_dir / "meta.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2))
 
@@ -224,7 +232,8 @@ async def assess_risk(
             "medium_percent": medium_percent,
             "danger_percent": danger_percent,
             "calculated_indices": list(indices.keys()),
-            "message": "Карта риска сохранена",
+            "processing_time_seconds": round(processing_time, 3),
+            "message": meta["message"],
         }
     except HTTPException:
         raise

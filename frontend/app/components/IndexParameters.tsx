@@ -1,3 +1,6 @@
+"use client";
+import { useState, useRef, useEffect } from "react";
+
 const satellites = ["Sentinel-2", "Landsat-8", "Канопус-В", "Метеор-М", "Ресурс-П"];
 const indexes = ["NDVI", "NDWI", "EVI", "NBR", "GNDVI", "GEMI"];
 
@@ -14,24 +17,37 @@ export function IndexParameters({
   onSatelliteChange,
   onIndexChange,
 }: IndexParametersProps) {
+  const [showSatellites, setShowSatellites] = useState(false);
+  const [showIndexes, setShowIndexes] = useState(false);
+  const satelliteRef = useRef<HTMLDivElement>(null);
+  const indexRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (satelliteRef.current && !satelliteRef.current.contains(event.target as Node)) {
+        setShowSatellites(false);
+      }
+      if (indexRef.current && !indexRef.current.contains(event.target as Node)) {
+        setShowIndexes(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   return (
     <>
-      <div>
-        <label className="mb-2 block text-xs font-medium text-white/70">Спутник</label>
-        <div className="relative">
-          <select
-            value={satellite}
-            onChange={(e) => onSatelliteChange(e.target.value)}
-            className="w-full appearance-none rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none focus:border-white/30 focus:bg-white/[0.07] transition"
-          >
-            {satellites.map((sat) => (
-              <option key={sat} value={sat}>
-                {sat}
-              </option>
-            ))}
-          </select>
+      <div ref={satelliteRef} className="relative">
+        <label className="mb-2 block text-xs font-medium text-gray-700">Спутник</label>
+        <button
+          type="button"
+          onClick={() => setShowSatellites(!showSatellites)}
+          className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition hover:bg-gray-50 text-left flex items-center justify-between"
+        >
+          <span>{satellite}</span>
           <svg
-            className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/60"
+            className={`h-4 w-4 text-gray-600 transition-transform ${showSatellites ? 'rotate-180' : ''}`}
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -39,25 +55,41 @@ export function IndexParameters({
           >
             <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
           </svg>
-        </div>
+        </button>
+
+        {showSatellites && (
+          <div className="absolute z-10 mt-2 w-full rounded-2xl border border-gray-300 bg-white shadow-xl overflow-hidden">
+            {satellites.map((sat) => (
+              <button
+                key={sat}
+                type="button"
+                onClick={() => {
+                  onSatelliteChange(sat);
+                  setShowSatellites(false);
+                }}
+                className={`w-full px-4 py-3 text-sm text-left transition ${
+                  satellite === sat
+                    ? "bg-emerald-50 text-emerald-900"
+                    : "text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                {sat}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
-      <div>
-        <label className="mb-2 block text-xs font-medium text-white/70">Индекс</label>
-        <div className="relative">
-          <select
-            value={indexName}
-            onChange={(e) => onIndexChange(e.target.value)}
-            className="w-full appearance-none rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none focus:border-white/30 focus:bg-white/[0.07] transition"
-          >
-            {indexes.map((idx) => (
-              <option key={idx} value={idx}>
-                {idx}
-              </option>
-            ))}
-          </select>
+      <div ref={indexRef} className="relative">
+        <label className="mb-2 block text-xs font-medium text-gray-700">Индекс</label>
+        <button
+          type="button"
+          onClick={() => setShowIndexes(!showIndexes)}
+          className="w-full rounded-2xl border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 outline-none transition hover:bg-gray-50 text-left flex items-center justify-between"
+        >
+          <span>{indexName}</span>
           <svg
-            className="pointer-events-none absolute right-4 top-1/2 h-4 w-4 -translate-y-1/2 text-white/60"
+            className={`h-4 w-4 text-gray-600 transition-transform ${showIndexes ? 'rotate-180' : ''}`}
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -65,7 +97,29 @@ export function IndexParameters({
           >
             <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
           </svg>
-        </div>
+        </button>
+
+        {showIndexes && (
+          <div className="absolute z-10 mt-2 w-full rounded-2xl border border-gray-300 bg-white shadow-xl overflow-hidden">
+            {indexes.map((idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => {
+                  onIndexChange(idx);
+                  setShowIndexes(false);
+                }}
+                className={`w-full px-4 py-3 text-sm text-left transition ${
+                  indexName === idx
+                    ? "bg-emerald-50 text-emerald-900"
+                    : "text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                {idx}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </>
   );
