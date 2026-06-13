@@ -6,3 +6,4 @@ numpy==1.24.3
 Pillow==10.1.0
 torch==2.1.0
 scipy==1.11.4
+pydantic_settings==2.1.0
