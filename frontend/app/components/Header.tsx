@@ -1,8 +1,10 @@
 "use client";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 
 export function Header() {
   const pathname = usePathname();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const isActive = (path: string) => {
     if (path === "/" && pathname === "/") return true;
@@ -24,7 +26,7 @@ export function Header() {
             <span className="text-lg font-semibold text-gray-900">GeoIndex</span>
           </a>
 
-          {/* Navigation */}
+          {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-1">
             <a
               href="/"
@@ -49,12 +51,49 @@ export function Header() {
           </nav>
 
           {/* Mobile menu button */}
-          <button className="md:hidden p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-50">
-            <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
+          <button
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="md:hidden p-2 rounded-lg text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+          >
+            {menuOpen ? (
+              <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            ) : (
+              <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            )}
           </button>
         </div>
+
+        {/* Mobile Navigation */}
+        {menuOpen && (
+          <nav className="md:hidden border-t border-gray-200 py-3 space-y-1">
+            <a
+              href="/"
+              onClick={() => setMenuOpen(false)}
+              className={`block px-4 py-3 rounded-xl text-sm font-medium transition ${
+                isActive("/") && !pathname?.includes("/result")
+                  ? "bg-emerald-50 text-emerald-900"
+                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+              }`}
+            >
+              Расчёт индексов
+            </a>
+            <a
+              href="/result"
+              onClick={() => setMenuOpen(false)}
+              className={`block px-4 py-3 rounded-xl text-sm font-medium transition ${
+                isActive("/result")
+                  ? "bg-emerald-50 text-emerald-900"
+                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+              }`}
+            >
+              История
+            </a>
+          </nav>
+        )}
       </div>
     </header>
   );

@@ -20,7 +20,8 @@ app.include_router(
 
 origins = [
     "http://localhost:3000",
-    "http://26.163.194.7:3000"
+    "http://26.163.194.7:3000",
+    "http://201.51.6.93:3000"
 ]
 
 app.add_middleware(

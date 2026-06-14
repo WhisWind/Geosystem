@@ -12,4 +12,4 @@ RUN mkdir -p /app/app_aplication/data/results
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app_aplication.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app_aplication.main:app", "--host", "201.51.6.93", "--port", "8000"]

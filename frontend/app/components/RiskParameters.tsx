@@ -2,8 +2,7 @@
 import { useState, useRef, useEffect } from "react";
 
 const riskScenarios = [
-  { value: "flooding", label: "Подтопление" },
-  { value: "ecological", label: "Экологическая устойчивость" },
+  { value: "flooding", label: "Потопление" },
   { value: "passability", label: "Проходимость" }
 ];
 
