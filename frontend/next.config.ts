@@ -6,7 +6,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/data/results/:path*",
-        destination: `${process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000"}/data/results/:path*`,
+        destination: `${process.env.API_URL || "http://backend:8000"}/data/results/:path*`,
       },
     ];
   },
